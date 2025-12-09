@@ -1,0 +1,33 @@
+<Window x:Class="MarkdownPad.InsertLinkDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="リンクを挿入" 
+        Height="180" 
+        Width="400"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="テキスト:" VerticalAlignment="Center" Margin="0,0,8,8" />
+        <TextBox x:Name="LinkTextTextBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,8" />
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="URL:" VerticalAlignment="Center" Margin="0,0,8,8" />
+        <TextBox x:Name="LinkUrlTextBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" />
+
+        <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="挿入" Width="80" Margin="0,0,8,0" Click="InsertButton_Click" IsDefault="True" />
+            <Button Content="キャンセル" Width="80" Click="CancelButton_Click" IsCancel="True" />
+        </StackPanel>
+    </Grid>
+</Window>

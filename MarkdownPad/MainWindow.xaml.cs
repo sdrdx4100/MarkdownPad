@@ -525,13 +525,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 <html>
 <head>
     <meta charset=""UTF-8"">
+    <meta name=""color-scheme"" content=""light"">
     <style>
+        :root {{
+            color-scheme: light;
+        }}
         body {{
             font-family: 'Segoe UI', 'Meiryo', sans-serif;
             line-height: 1.6;
             padding: 20px;
             max-width: 100%;
             color: #333;
+            background-color: #ffffff;
         }}
         h1, h2, h3, h4, h5, h6 {{
             margin-top: 24px;

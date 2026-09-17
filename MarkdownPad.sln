@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MarkdownPad.Core", "MarkdownPad.Core\MarkdownPad.Core.csproj", "{29F7E8A8-5786-4435-8F5F-E7ECA96DA278}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MarkdownPad", "MarkdownPad\MarkdownPad.csproj", "{9CD79740-93E3-4298-BF0E-1D21D5EF4F2A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MarkdownPad.Tests", "MarkdownPad.Tests\MarkdownPad.Tests.csproj", "{9367B6EE-F124-4654-9442-F08EC65420C8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{29F7E8A8-5786-4435-8F5F-E7ECA96DA278}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{29F7E8A8-5786-4435-8F5F-E7ECA96DA278}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{29F7E8A8-5786-4435-8F5F-E7ECA96DA278}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{29F7E8A8-5786-4435-8F5F-E7ECA96DA278}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9CD79740-93E3-4298-BF0E-1D21D5EF4F2A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9CD79740-93E3-4298-BF0E-1D21D5EF4F2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9CD79740-93E3-4298-BF0E-1D21D5EF4F2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9CD79740-93E3-4298-BF0E-1D21D5EF4F2A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9367B6EE-F124-4654-9442-F08EC65420C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9367B6EE-F124-4654-9442-F08EC65420C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9367B6EE-F124-4654-9442-F08EC65420C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9367B6EE-F124-4654-9442-F08EC65420C8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

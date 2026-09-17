@@ -21,11 +21,22 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Resolve version from tag
+        id: version
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}" -replace '^v', ''
+          "value=$version" >> $env:GITHUB_OUTPUT
+
       - name: Restore dependencies
-        run: dotnet restore MarkdownPad/MarkdownPad.csproj
+        run: dotnet restore MarkdownPad.sln
 
       - name: Build
-        run: dotnet build MarkdownPad/MarkdownPad.csproj --configuration Release --no-restore
+        run: dotnet build MarkdownPad.sln --configuration Release --no-restore -p:Version=${{ steps.version.outputs.value }}
+
+      # A release must never ship logic that the test suite rejects.
+      - name: Test
+        run: dotnet test MarkdownPad.Tests/MarkdownPad.Tests.csproj --configuration Release --no-build
 
       - name: Publish
         run: |
@@ -34,14 +45,25 @@ jobs:
             --output ./publish `
             --self-contained true `
             --runtime win-x64 `
+            -p:Version=${{ steps.version.outputs.value }} `
             -p:PublishSingleFile=true `
-            -p:IncludeNativeLibrariesForSelfExtract=true
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true
 
       - name: Create ZIP archive
         run: Compress-Archive -Path ./publish/* -DestinationPath ./MarkdownPad-${{ github.ref_name }}-win-x64.zip
 
+      - name: Compute checksum
+        shell: pwsh
+        run: |
+          $zip = "./MarkdownPad-${{ github.ref_name }}-win-x64.zip"
+          (Get-FileHash $zip -Algorithm SHA256).Hash + "  " + (Split-Path $zip -Leaf) |
+            Out-File -Encoding ascii "$zip.sha256"
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ./MarkdownPad-${{ github.ref_name }}-win-x64.zip
+          files: |
+            ./MarkdownPad-${{ github.ref_name }}-win-x64.zip
+            ./MarkdownPad-${{ github.ref_name }}-win-x64.zip.sha256
           generate_release_notes: true

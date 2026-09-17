@@ -32,9 +32,12 @@ project.fragment.lock.json
 artifacts/
 
 # Build outputs
-*.dll
+# Scoped to build folders: a blanket *.dll/*.exe rule would also ignore
+# binary assets that belong in the repository.
+**/[Bb]in/**/*.dll
+**/[Bb]in/**/*.exe
+**/[Oo]bj/**/*.dll
 *.pdb
-*.exe
 
 # Publish
 publish/
@@ -46,3 +49,10 @@ Desktop.ini
 
 # macOS
 .DS_Store
+
+# Test results
+[Tt]est[Rr]esult*/
+*.trx
+
+# Local tooling
+.dotnet/

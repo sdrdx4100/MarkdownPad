@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -7,11 +7,32 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RootNamespace>MarkdownPad</RootNamespace>
+    <AssemblyName>MarkdownPad</AssemblyName>
+    <StartupObject>MarkdownPad.App</StartupObject>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+
+    <Product>MarkdownPad</Product>
+    <Description>マークダウン対応メモ帳アプリケーション</Description>
+    <!-- Overridden by the release workflow with the tag's version. -->
+    <Version>1.1.0</Version>
+
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+
+    <!-- Keep the published folder to a single executable: fold symbols into the
+         binary and leave third-party XML documentation out of the release ZIP. -->
+    <DebugType>embedded</DebugType>
+    <PublishDocumentationFiles>false</PublishDocumentationFiles>
+    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Markdig" Version="0.40.0" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../MarkdownPad.Core/MarkdownPad.Core.csproj" />
   </ItemGroup>
 
 </Project>

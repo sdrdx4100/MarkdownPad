@@ -1,0 +1,40 @@
+<Window x:Class="MarkdownPad.Views.InsertLinkDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="リンクを挿入"
+        SizeToContent="Height"
+        Width="440"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Label Grid.Row="0" Grid.Column="0" Content="テキスト(_T):" Target="{Binding ElementName=LinkTextTextBox}"
+               VerticalAlignment="Center" Margin="0,0,8,4" Padding="0" />
+        <TextBox x:Name="LinkTextTextBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
+                 AutomationProperties.Name="リンクのテキスト" />
+
+        <Label Grid.Row="1" Grid.Column="0" Content="URL(_U):" Target="{Binding ElementName=LinkUrlTextBox}"
+               VerticalAlignment="Center" Margin="0,0,8,4" Padding="0" />
+        <TextBox x:Name="LinkUrlTextBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,8"
+                 AutomationProperties.Name="リンク先の URL" />
+
+        <TextBlock x:Name="ValidationText" Grid.Row="2" Grid.Column="1" Margin="0,0,0,8"
+                   Foreground="#B00020" TextWrapping="Wrap" />
+
+        <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="挿入" Width="84" Margin="0,0,8,0" Click="InsertButton_Click" IsDefault="True" />
+            <Button Content="キャンセル" Width="84" IsCancel="True" />
+        </StackPanel>
+    </Grid>
+</Window>

@@ -23,6 +23,4 @@ public partial class MarkdownGuideWindow : Window
         InsertRequested = true;
         DialogResult = true;
     }
-
-    private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
 }

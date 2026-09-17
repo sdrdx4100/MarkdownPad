@@ -133,23 +133,23 @@ public partial class FindReplaceDialog : Window
             return;
         }
 
-        string replacement = ReplaceTextBox.Text;
-        var matches = TextSearch.FindAll(_editor.Text, pattern, Comparison);
+        string original = _editor.Text;
+        var (replaced, count) = TextSearch.ReplaceAll(original, pattern, ReplaceTextBox.Text, Comparison);
 
-        if (matches.Count == 0)
+        if (count == 0)
         {
             StatusText.Text = "見つかりませんでした。";
             return;
         }
 
-        // Applied back to front, as one undoable change: assigning TextBox.Text
-        // wholesale would have discarded the undo history entirely.
-        _editor.ApplyBatch(matches
-            .Reverse()
-            .Select(index => new EditOperation(index, pattern.Length, replacement, index, 0)));
+        // One replacement of the whole document: a single undoable change that
+        // stays fast no matter how many matches there are. Assigning
+        // TextBox.Text instead would discard the undo history entirely.
+        int caret = Math.Min(_editor.SelectionStart, replaced.Length);
+        _editor.Apply(new EditOperation(0, original.Length, replaced, caret, 0));
 
         _lastMatchIndex = -1;
-        StatusText.Text = $"{matches.Count} 件を置換しました。";
+        StatusText.Text = $"{count} 件を置換しました。";
     }
 
     private void SelectMatch(int index, int length)

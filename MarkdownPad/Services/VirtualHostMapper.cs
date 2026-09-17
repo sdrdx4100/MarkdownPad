@@ -33,6 +33,11 @@ public sealed class VirtualHostMapper : IResourceUrlMapper
     {
         _core = core;
         core.SetVirtualHostNameToFolderMapping(AppHost, appAssetFolder, CoreWebView2HostResourceAccessKind.Allow);
+
+        // A document opened while WebView2 was still starting recorded its
+        // directory but had nothing to map it on. Apply it now, or its images
+        // would stay broken for as long as that file is open.
+        ApplyDocumentMapping(_documentDirectory);
     }
 
     public bool IsKnownHost(string host)
@@ -49,6 +54,11 @@ public sealed class VirtualHostMapper : IResourceUrlMapper
         if (string.Equals(_documentDirectory, directory, StringComparison.OrdinalIgnoreCase)) return;
 
         _documentDirectory = directory;
+        ApplyDocumentMapping(directory);
+    }
+
+    private void ApplyDocumentMapping(string? directory)
+    {
         if (_core is null) return;
 
         try

@@ -51,27 +51,6 @@ public sealed class TextBoxEditor
         _textBox.Focus();
     }
 
-    /// <summary>
-    /// Applies several operations as one undo step. Callers pass them in
-    /// descending offset order so earlier offsets stay valid.
-    /// </summary>
-    public void ApplyBatch(IEnumerable<EditOperation> operations)
-    {
-        _textBox.BeginChange();
-        try
-        {
-            foreach (var operation in operations)
-            {
-                Select(operation.Start, operation.Length);
-                _textBox.SelectedText = operation.ReplacementText;
-            }
-        }
-        finally
-        {
-            _textBox.EndChange();
-        }
-    }
-
     public void InsertAtCaret(string text)
         => Apply(MarkdownFormatter.InsertText(Text, SelectionStart, SelectionLength, text));
 

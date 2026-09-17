@@ -60,6 +60,34 @@ public static class TextSearch
         return matches;
     }
 
+    /// <summary>
+    /// Replaces every match in one pass and reports how many there were.
+    /// </summary>
+    /// <remarks>
+    /// The editor applies the result as a single replacement of the whole
+    /// document. Replacing each match individually would be O(text x matches):
+    /// every assignment copies the entire buffer, so a few thousand hits in a
+    /// large file would freeze the UI for seconds.
+    /// </remarks>
+    public static (string Text, int Count) ReplaceAll(string text, string pattern, string replacement, StringComparison comparison)
+    {
+        var matches = FindAll(text, pattern, comparison);
+        if (matches.Count == 0) return (text, 0);
+
+        var builder = new System.Text.StringBuilder(text.Length + matches.Count * (replacement.Length - pattern.Length));
+        int cursor = 0;
+
+        foreach (int index in matches)
+        {
+            builder.Append(text, cursor, index - cursor);
+            builder.Append(replacement);
+            cursor = index + pattern.Length;
+        }
+
+        builder.Append(text, cursor, text.Length - cursor);
+        return (builder.ToString(), matches.Count);
+    }
+
     private static int LastIndexOfUpTo(string text, string pattern, int from, StringComparison comparison)
     {
         for (int i = Math.Min(from, text.Length - pattern.Length); i >= 0; i--)

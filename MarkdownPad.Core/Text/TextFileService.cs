@@ -69,6 +69,19 @@ public static class TextFileService
         var strict = (Encoding)format.Encoding.Clone();
         strict.EncoderFallback = EncoderFallback.ExceptionFallback;
 
+        // One encode of the whole document answers the common case. Only when
+        // that fails is it worth walking the text rune by rune to name the
+        // offender, which costs an encoder call per character.
+        try
+        {
+            _ = strict.GetBytes(text);
+            return false;
+        }
+        catch (EncoderFallbackException)
+        {
+            // Fall through to locate the specific character.
+        }
+
         foreach (var rune in text.EnumerateRunes())
         {
             string value = rune.ToString();

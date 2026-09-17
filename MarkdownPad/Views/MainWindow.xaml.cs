@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using MarkdownPad.Core.Images;
 using MarkdownPad.Core.Settings;
@@ -45,6 +46,7 @@ public partial class MainWindow : Window
         EditorTextBox.AddHandler(ScrollViewer.ScrollChangedEvent, new ScrollChangedEventHandler(OnEditorScrollChanged));
 
         Loaded += OnLoaded;
+        Activated += OnActivated;
     }
 
     /// <summary>File passed on the command line, opened once the window is up.</summary>
@@ -114,8 +116,58 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnActivated(object? sender, EventArgs e) => _viewModel.CheckForExternalChange();
+
     private void EditorTextBox_SelectionChanged(object sender, RoutedEventArgs e)
-        => _viewModel.UpdateCaretPosition(EditorTextBox.CaretIndex);
+        => _viewModel.UpdateCaretPosition(EditorTextBox.CaretIndex, EditorTextBox.SelectionLength);
+
+    /// <summary>
+    /// The editing gestures a Markdown editor is expected to support. They are
+    /// handled here rather than as window InputBindings because the editor must
+    /// see them first, and because Enter and Tab have to be able to fall back to
+    /// the TextBox's own behaviour.
+    /// </summary>
+    private void EditorTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        var modifiers = Keyboard.Modifiers;
+
+        switch (e.Key)
+        {
+            case Key.Enter when modifiers == ModifierKeys.None:
+                e.Handled = _viewModel.TryContinueLine();
+                return;
+
+            case Key.Tab when modifiers is ModifierKeys.None or ModifierKeys.Shift:
+                _viewModel.ChangeIndent(increase: modifiers != ModifierKeys.Shift);
+                e.Handled = true;
+                return;
+
+            case Key.Up when modifiers == ModifierKeys.Alt:
+            case Key.Down when modifiers == ModifierKeys.Alt:
+                _viewModel.MoveSelectedLines(e.Key == Key.Up ? -1 : 1);
+                e.Handled = true;
+                return;
+
+            case Key.D when modifiers == ModifierKeys.Control:
+                _viewModel.DuplicateSelectedLines();
+                e.Handled = true;
+                return;
+
+            case Key.K when modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
+                _viewModel.DeleteSelectedLines();
+                e.Handled = true;
+                return;
+        }
+    }
+
+    /// <summary>Ctrl+wheel zooms the editor, as it does in every other editor.</summary>
+    private void EditorTextBox_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (Keyboard.Modifiers != ModifierKeys.Control) return;
+
+        _viewModel.ZoomBy(Math.Sign(e.Delta));
+        e.Handled = true;
+    }
 
     private void OnEditorScrollChanged(object sender, ScrollChangedEventArgs e)
     {

@@ -30,6 +30,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly ImageInsertionService _images = new();
     private readonly RecoveryStore _recovery = new(AppPaths.Backups);
     private readonly LineIndex _lineIndex = new();
+    private readonly SearchSession _search = new();
     private readonly DispatcherTimer _previewTimer;
     private readonly DispatcherTimer _autoSaveTimer;
 
@@ -46,6 +47,9 @@ public sealed class MainViewModel : ObservableObject
     private int _currentColumn = 1;
     private string _title = "MarkdownPad - 無題";
     private string? _previewError;
+    private int _selectionLength;
+    private FileStamp? _diskStamp;
+    private bool _reloadPromptOpen;
 
     public MainViewModel(IDialogService dialogs, AppSettings settings)
     {
@@ -223,6 +227,22 @@ public sealed class MainViewModel : ObservableObject
         private set => SetProperty(ref _currentColumn, value);
     }
 
+    /// <summary>Characters currently selected; editors show this next to the caret position.</summary>
+    public int SelectionLength
+    {
+        get => _selectionLength;
+        private set
+        {
+            if (!SetProperty(ref _selectionLength, value)) return;
+            OnPropertyChanged(nameof(SelectionText));
+            OnPropertyChanged(nameof(HasSelection));
+        }
+    }
+
+    public bool HasSelection => _selectionLength > 0;
+
+    public string SelectionText => $"（{_selectionLength} 文字選択）";
+
     public string StatusMessage
     {
         get => _statusMessage;
@@ -292,6 +312,18 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>Copy dropped or pasted image files into the document's folder.</summary>
+    public bool CopyImportedImages
+    {
+        get => Settings.CopyImportedImages;
+        set
+        {
+            if (Settings.CopyImportedImages == value) return;
+            Settings.CopyImportedImages = value;
+            OnPropertyChanged();
+        }
+    }
+
     public bool AllowRawHtml
     {
         get => Settings.AllowRawHtml;
@@ -348,6 +380,12 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand ExitCommand { get; private set; } = null!;
     public RelayCommand FindCommand { get; private set; } = null!;
     public RelayCommand ReplaceCommand { get; private set; } = null!;
+    public RelayCommand FindNextCommand { get; private set; } = null!;
+    public RelayCommand FindPreviousCommand { get; private set; } = null!;
+    public RelayCommand DuplicateLineCommand { get; private set; } = null!;
+    public RelayCommand DeleteLineCommand { get; private set; } = null!;
+    public RelayCommand MoveLineUpCommand { get; private set; } = null!;
+    public RelayCommand MoveLineDownCommand { get; private set; } = null!;
     public RelayCommand InsertImageCommand { get; private set; } = null!;
     public RelayCommand InsertLinkCommand { get; private set; } = null!;
     public RelayCommand InsertTableCommand { get; private set; } = null!;
@@ -387,6 +425,12 @@ public sealed class MainViewModel : ObservableObject
 
         FindCommand = new RelayCommand(() => ShowFind(replace: false));
         ReplaceCommand = new RelayCommand(() => ShowFind(replace: true));
+        FindNextCommand = new RelayCommand(() => RepeatSearch(forward: true));
+        FindPreviousCommand = new RelayCommand(() => RepeatSearch(forward: false));
+        DuplicateLineCommand = new RelayCommand(DuplicateSelectedLines);
+        DeleteLineCommand = new RelayCommand(DeleteSelectedLines);
+        MoveLineUpCommand = new RelayCommand(() => MoveSelectedLines(-1));
+        MoveLineDownCommand = new RelayCommand(() => MoveSelectedLines(1));
 
         InsertImageCommand = new RelayCommand(InsertImageFromFile);
         InsertLinkCommand = new RelayCommand(InsertLink);
@@ -433,12 +477,13 @@ public sealed class MainViewModel : ObservableObject
         preview.SetTheme(PreviewTheme);
     }
 
-    /// <summary>Called by the view whenever the caret moves.</summary>
-    public void UpdateCaretPosition(int offset)
+    /// <summary>Called by the view whenever the caret or the selection moves.</summary>
+    public void UpdateCaretPosition(int offset, int selectionLength = 0)
     {
         var (line, column) = _lineIndex.GetLineColumn(offset);
         CurrentLine = line;
         CurrentColumn = column;
+        SelectionLength = selectionLength;
     }
 
     /// <summary>Called by the view when the editor scrolls, to follow along in the preview.</summary>
@@ -474,6 +519,43 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Called when the window is activated: notices that another program
+    /// rewrote the open file and offers to reload it.
+    /// </summary>
+    /// <remarks>
+    /// Comparing a stamp on activation is deliberately simpler than a file
+    /// watcher: it cannot fire on the editor's own saves, needs no background
+    /// thread, and only ever interrupts the user when they are actually here.
+    /// </remarks>
+    public void CheckForExternalChange()
+    {
+        if (_reloadPromptOpen || string.IsNullOrEmpty(CurrentFilePath) || _diskStamp is null) return;
+
+        var current = TextFileService.TryReadStamp(CurrentFilePath);
+        if (current is null || current == _diskStamp) return;
+
+        _reloadPromptOpen = true;
+        try
+        {
+            if (_dialogs.AskToReload(DocumentName, IsModified))
+            {
+                LoadFile(CurrentFilePath);
+            }
+            else
+            {
+                // Accept the new state as the baseline so the prompt does not
+                // reappear on every activation.
+                _diskStamp = current;
+                IsModified = true;
+            }
+        }
+        finally
+        {
+            _reloadPromptOpen = false;
+        }
+    }
+
     public bool ConfirmDiscardChanges()
     {
         if (!IsModified) return true;
@@ -491,6 +573,7 @@ public sealed class MainViewModel : ObservableObject
         if (!ConfirmDiscardChanges()) return;
 
         SetDocument(string.Empty, string.Empty, TextDocumentFormat.Default);
+        _diskStamp = null;
         _recovery.Clear();
         StatusMessage = "新規ファイルを作成しました";
     }
@@ -516,6 +599,7 @@ public sealed class MainViewModel : ObservableObject
             var loaded = TextFileService.Load(path);
 
             SetDocument(loaded.Text, path, loaded.Format);
+            _diskStamp = TextFileService.TryReadStamp(path);
             _recovery.Clear();
             AddRecentFile(path);
 
@@ -575,6 +659,7 @@ public sealed class MainViewModel : ObservableObject
         {
             TextFileService.Save(path, MarkdownText, DocumentFormat);
 
+            _diskStamp = TextFileService.TryReadStamp(path);
             IsModified = false;
             _recovery.Clear();
             StatusMessage = $"ファイルを保存しました: {Path.GetFileName(path)}";
@@ -755,10 +840,94 @@ public sealed class MainViewModel : ObservableObject
 
     private void InsertSnippet(string snippet) => _editor?.InsertAtCaret(snippet);
 
+    /// <summary>
+    /// Enter: carries a list bullet, number, quote or indentation onto the next
+    /// line, and clears the marker on an empty item. Returns false to let the
+    /// editor insert an ordinary newline.
+    /// </summary>
+    public bool TryContinueLine()
+    {
+        // With a selection, Enter replaces it: the editor's own handling is right.
+        if (_editor is null || _editor.SelectionLength > 0) return false;
+
+        // The TextBox itself inserts CRLF, so matching it keeps the buffer uniform.
+        var operation = EditorCommands.ContinueLine(_editor.Text, _editor.CaretIndex, "\r\n");
+        if (operation is null) return false;
+
+        _editor.Apply(operation);
+        return true;
+    }
+
+    /// <summary>Tab / Shift+Tab over the selected lines.</summary>
+    public void ChangeIndent(bool increase)
+    {
+        if (_editor is null) return;
+
+        _editor.Apply(increase
+            ? EditorCommands.Indent(_editor.Text, _editor.SelectionStart, _editor.SelectionLength)
+            : EditorCommands.Outdent(_editor.Text, _editor.SelectionStart, _editor.SelectionLength));
+    }
+
+    /// <summary>Alt+Up / Alt+Down: reorders the selected lines.</summary>
+    public void MoveSelectedLines(int direction)
+    {
+        if (_editor is null) return;
+
+        var operation = EditorCommands.MoveLines(_editor.Text, _editor.SelectionStart, _editor.SelectionLength, direction);
+        if (operation is not null) _editor.Apply(operation);
+    }
+
+    public void DuplicateSelectedLines()
+    {
+        if (_editor is null) return;
+        _editor.Apply(EditorCommands.DuplicateLines(_editor.Text, _editor.SelectionStart, _editor.SelectionLength));
+    }
+
+    public void DeleteSelectedLines()
+    {
+        if (_editor is null) return;
+        _editor.Apply(EditorCommands.DeleteLines(_editor.Text, _editor.SelectionStart, _editor.SelectionLength));
+    }
+
+    public void ZoomBy(int steps) => EditorFontSize += steps;
+
     private void ShowFind(bool replace)
     {
         if (_editor is null) return;
-        _dialogs.ShowFindReplace(_editor, replace, _editor.SelectedText);
+        _dialogs.ShowFindReplace(_editor, _search, replace, _editor.SelectedText);
+    }
+
+    /// <summary>
+    /// F3 / Shift+F3: repeats the last search without the dialog, which is what
+    /// every editor does. With nothing searched yet, it opens the dialog.
+    /// </summary>
+    private void RepeatSearch(bool forward)
+    {
+        if (_editor is null) return;
+
+        if (!_search.HasQuery)
+        {
+            ShowFind(replace: false);
+            return;
+        }
+
+        var query = _search.Query!;
+        string text = _editor.Text;
+        int start = forward ? _editor.SelectionStart + _editor.SelectionLength : _editor.SelectionStart;
+
+        var match = forward
+            ? TextSearch.FindNext(text, query, start, _search.Wrap)
+            : TextSearch.FindPrevious(text, query, start, _search.Wrap);
+
+        if (match is null)
+        {
+            StatusMessage = $"'{query.Pattern}' は見つかりませんでした";
+            return;
+        }
+
+        _editor.Select(match.Value.Index, match.Value.Length);
+        _editor.ScrollToOffset(match.Value.Index);
+        StatusMessage = $"'{query.Pattern}' を {_lineIndex.GetLineColumn(match.Value.Index).Line} 行目で見つけました";
     }
 
     private void InsertLink()
@@ -779,7 +948,39 @@ public sealed class MainViewModel : ObservableObject
     private void InsertImageFromFile()
     {
         string? path = _dialogs.PickFileToOpen(ImageFilter, "画像を選択", DocumentDirectory);
-        if (path is not null) InsertImageReference(path);
+        if (path is not null) InsertImageReference(ImportImageIfNeeded(path));
+    }
+
+    /// <summary>
+    /// Copies an image into the document's own <c>images</c> folder so the note
+    /// keeps working after the original is moved or the Downloads folder is
+    /// emptied. Files already inside the document tree are linked in place.
+    /// </summary>
+    private string ImportImageIfNeeded(string imagePath)
+    {
+        if (!Settings.CopyImportedImages || string.IsNullOrEmpty(DocumentDirectory)) return imagePath;
+
+        try
+        {
+            if (IsInsideDocumentTree(imagePath)) return imagePath;
+
+            string target = _images.CopyIntoLibrary(imagePath, CurrentFilePath);
+            StatusMessage = $"画像を取り込みました: {Path.GetFileName(target)}";
+            return target;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
+        {
+            _dialogs.ShowError($"画像を取り込めませんでした: {e.Message}");
+            return imagePath;
+        }
+    }
+
+    private bool IsInsideDocumentTree(string path)
+    {
+        if (string.IsNullOrEmpty(DocumentDirectory)) return false;
+
+        string relative = Path.GetRelativePath(DocumentDirectory, path);
+        return !Path.IsPathRooted(relative) && !relative.StartsWith("..", StringComparison.Ordinal);
     }
 
     /// <summary>Inserts a Markdown reference to an image that is already on disk.</summary>
@@ -825,7 +1026,7 @@ public sealed class MainViewModel : ObservableObject
 
         foreach (string image in imagePaths)
         {
-            InsertImageReference(image);
+            InsertImageReference(ImportImageIfNeeded(image));
         }
 
         if (imagePaths.Count > 0) return;

@@ -35,10 +35,13 @@ public interface IDialogService
     /// <summary>Shows the cheat sheet; returns true when the user asked to insert it.</summary>
     bool ShowMarkdownGuide();
 
-    void ShowFindReplace(TextBoxEditor editor, bool showReplace, string? seedText);
+    void ShowFindReplace(TextBoxEditor editor, SearchSession session, bool showReplace, string? seedText);
 
     void CloseFindReplace();
 
     /// <summary>Offers to restore a snapshot left behind by a previous run.</summary>
     bool AskToRecover(RecoverySnapshot snapshot);
+
+    /// <summary>Asks whether to reload a file that changed outside the editor.</summary>
+    bool AskToReload(string fileName, bool hasUnsavedChanges);
 }

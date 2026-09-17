@@ -13,3 +13,9 @@ public sealed record TextDocumentFormat(Encoding Encoding, bool HasBom, NewLineS
 
     public string StatusText => $"{EncodingDisplayName} / {NewLine.ToDisplayName()}";
 }
+
+/// <summary>
+/// Identity of a file on disk at a point in time. Comparing it on window
+/// activation is how the editor notices that another program rewrote the file.
+/// </summary>
+public readonly record struct FileStamp(DateTime LastWriteUtc, long Length);

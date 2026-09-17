@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="検索と置換"
         SizeToContent="Height"
-        Width="440"
+        Width="460"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         ShowInTaskbar="False">
@@ -24,7 +24,7 @@
                VerticalAlignment="Center" Margin="0,0,8,4" Padding="0" />
         <TextBox x:Name="FindTextBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
                  AutomationProperties.Name="検索する文字列"
-                 TextChanged="FindTextBox_TextChanged" />
+                 TextChanged="Query_Changed" />
 
         <Label x:Name="ReplaceLabel" Grid.Row="1" Grid.Column="0" Content="置換(_P):" Target="{Binding ElementName=ReplaceTextBox}"
                VerticalAlignment="Center" Margin="0,0,8,4" Padding="0" />
@@ -32,7 +32,9 @@
                  AutomationProperties.Name="置換後の文字列" />
 
         <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,8">
-            <CheckBox x:Name="CaseSensitiveCheckBox" Content="大文字と小文字を区別(_C)" Margin="0,0,16,0" />
+            <CheckBox x:Name="CaseSensitiveCheckBox" Content="大文字と小文字を区別(_C)" Margin="0,0,16,0" Click="Query_Changed" />
+            <CheckBox x:Name="RegexCheckBox" Content="正規表現(_E)" Margin="0,0,16,0" Click="Query_Changed"
+                      ToolTip="置換では $1 のようなグループ参照が使えます。" />
             <CheckBox x:Name="WrapAroundCheckBox" Content="折り返して検索(_W)" IsChecked="True" />
         </StackPanel>
 
@@ -45,7 +47,7 @@
             <Button x:Name="FindNextButton" Content="次を検索" Width="84" Margin="0,0,8,0" Click="FindNextButton_Click" IsDefault="True" />
             <Button x:Name="ReplaceButton" Content="置換" Width="84" Margin="0,0,8,0" Click="ReplaceButton_Click" />
             <Button x:Name="ReplaceAllButton" Content="すべて置換" Width="84" Margin="0,0,8,0" Click="ReplaceAllButton_Click" />
-            <Button Content="閉じる" Width="84" Click="CloseButton_Click" IsCancel="True" />
+            <Button Content="閉じる" Width="84" IsCancel="True" />
         </StackPanel>
     </Grid>
 </Window>

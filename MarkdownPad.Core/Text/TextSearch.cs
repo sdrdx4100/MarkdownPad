@@ -1,8 +1,136 @@
+using System.Text.RegularExpressions;
+
 namespace MarkdownPad.Core.Text;
 
-/// <summary>Plain-text search primitives shared by the find/replace dialog.</summary>
+/// <summary>Search primitives shared by the find/replace dialog.</summary>
 public static class TextSearch
 {
+    /// <summary>Next match at or after <paramref name="startIndex"/>, honouring the query's mode.</summary>
+    public static SearchMatch? FindNext(string text, SearchQuery query, int startIndex, bool wrap = true)
+    {
+        if (!query.IsUsable || text.Length == 0) return null;
+
+        if (query.Regex is null)
+        {
+            int index = FindNext(text, query.Pattern, startIndex, query.Comparison, wrap);
+            return index < 0 ? null : new SearchMatch(index, query.Pattern.Length);
+        }
+
+        int from = Math.Clamp(startIndex, 0, text.Length);
+        var match = SafeMatch(query.Regex, text, from);
+
+        if ((match is null || !match.Success) && wrap && from > 0)
+        {
+            match = SafeMatch(query.Regex, text, 0);
+        }
+
+        return match is { Success: true } ? new SearchMatch(match.Index, match.Length) : null;
+    }
+
+    /// <summary>Last match ending at or before <paramref name="startIndex"/>.</summary>
+    public static SearchMatch? FindPrevious(string text, SearchQuery query, int startIndex, bool wrap = true)
+    {
+        if (!query.IsUsable || text.Length == 0) return null;
+
+        if (query.Regex is null)
+        {
+            int index = FindPrevious(text, query.Pattern, startIndex, query.Comparison, wrap);
+            return index < 0 ? null : new SearchMatch(index, query.Pattern.Length);
+        }
+
+        var matches = FindAll(text, query);
+        if (matches.Count == 0) return null;
+
+        for (int i = matches.Count - 1; i >= 0; i--)
+        {
+            if (matches[i].Index + matches[i].Length <= startIndex) return matches[i];
+        }
+
+        return wrap ? matches[^1] : null;
+    }
+
+    /// <summary>Every non-overlapping match, in ascending order.</summary>
+    public static IReadOnlyList<SearchMatch> FindAll(string text, SearchQuery query)
+    {
+        if (!query.IsUsable || text.Length == 0) return Array.Empty<SearchMatch>();
+
+        if (query.Regex is null)
+        {
+            return FindAll(text, query.Pattern, query.Comparison)
+                .Select(index => new SearchMatch(index, query.Pattern.Length))
+                .ToArray();
+        }
+
+        var results = new List<SearchMatch>();
+        int cursor = 0;
+
+        while (cursor <= text.Length)
+        {
+            var match = SafeMatch(query.Regex, text, cursor);
+            if (match is not { Success: true }) break;
+
+            results.Add(new SearchMatch(match.Index, match.Length));
+
+            // A zero-width match would otherwise spin forever on one position.
+            cursor = match.Length > 0 ? match.Index + match.Length : match.Index + 1;
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// Replaces every match in one pass. Regular-expression replacements support
+    /// the usual <c>$1</c> group substitutions.
+    /// </summary>
+    public static (string Text, int Count) ReplaceAll(string text, SearchQuery query, string replacement)
+    {
+        if (!query.IsUsable) return (text, 0);
+
+        if (query.Regex is null)
+        {
+            return ReplaceAll(text, query.Pattern, replacement, query.Comparison);
+        }
+
+        var matches = FindAll(text, query);
+        if (matches.Count == 0) return (text, 0);
+
+        var builder = new System.Text.StringBuilder(text.Length);
+        int cursor = 0;
+
+        foreach (var match in matches)
+        {
+            builder.Append(text, cursor, match.Index - cursor);
+
+            var regexMatch = query.Regex.Match(text, match.Index, match.Length);
+            builder.Append(regexMatch.Success ? regexMatch.Result(replacement) : replacement);
+
+            cursor = match.Index + match.Length;
+        }
+
+        builder.Append(text, cursor, text.Length - cursor);
+        return (builder.ToString(), matches.Count);
+    }
+
+    /// <summary>
+    /// Runs a regular expression, turning a runaway pattern into "no match"
+    /// instead of an exception on the UI thread.
+    /// </summary>
+    private static Match? SafeMatch(Regex regex, string text, int startAt)
+    {
+        try
+        {
+            return regex.Match(text, startAt);
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            return null;
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>
     /// Finds the next match at or after <paramref name="startIndex"/>, wrapping to
     /// the start of the document when <paramref name="wrap"/> is set.

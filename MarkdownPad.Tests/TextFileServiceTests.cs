@@ -63,6 +63,47 @@ public class TextFileServiceTests : IDisposable
     }
 
     [Fact]
+    public void Overwriting_an_existing_file_leaves_no_temporary_behind()
+    {
+        string path = Path.Combine(_dir, "atomic.md");
+        File.WriteAllText(path, "old content");
+
+        var format = new TextDocumentFormat(TextEncodings.Utf8NoBom, false, NewLineStyle.Lf, "UTF-8");
+        TextFileService.Save(path, "new content", format);
+
+        Assert.Equal("new content", File.ReadAllText(path));
+        Assert.Empty(Directory.GetFiles(_dir, "*.mdpad-tmp"));
+        Assert.Single(Directory.GetFiles(_dir));
+    }
+
+    [Fact]
+    public void Saving_to_a_new_path_creates_the_file()
+    {
+        string path = Path.Combine(_dir, "fresh.md");
+        var format = new TextDocumentFormat(TextEncodings.Utf8NoBom, false, NewLineStyle.Lf, "UTF-8");
+
+        TextFileService.Save(path, "hello", format);
+
+        Assert.Equal("hello", File.ReadAllText(path));
+    }
+
+    [Fact]
+    public void File_stamp_tracks_external_modification()
+    {
+        string path = Path.Combine(_dir, "watched.md");
+        File.WriteAllText(path, "one");
+
+        var before = TextFileService.TryReadStamp(path);
+        Assert.NotNull(before);
+
+        File.WriteAllText(path, "one and two");
+        var after = TextFileService.TryReadStamp(path);
+
+        Assert.NotEqual(before, after);
+        Assert.Null(TextFileService.TryReadStamp(Path.Combine(_dir, "missing.md")));
+    }
+
+    [Fact]
     public void Status_text_reports_both_encoding_and_line_ending()
     {
         var format = new TextDocumentFormat(TextEncodings.Utf8NoBom, false, NewLineStyle.Lf, "UTF-8");

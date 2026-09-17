@@ -37,6 +37,12 @@ public sealed class AppSettings
 
     public List<string> RecentFiles { get; set; } = new();
 
+    /// <summary>
+    /// Copy images dropped or pasted from elsewhere into the document's own
+    /// folder, so a note does not break when the source file moves.
+    /// </summary>
+    public bool CopyImportedImages { get; set; } = true;
+
     public bool AutoSaveEnabled { get; set; } = true;
     public int AutoSaveIntervalSeconds { get; set; } = 30;
 

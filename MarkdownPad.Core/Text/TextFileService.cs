@@ -29,8 +29,74 @@ public static class TextFileService
             new TextDocumentFormat(detected.Encoding, detected.HasBom, newLine, detected.DisplayName));
     }
 
+    /// <summary>
+    /// Writes the document, replacing the target only once the new content is
+    /// completely on disk.
+    /// </summary>
+    /// <remarks>
+    /// Writing straight over the original truncates it first, so a crash, a full
+    /// disk or a power cut in the middle of a save destroys the previous version
+    /// along with the new one. Editors write a sibling temporary file and swap.
+    /// </remarks>
     public static void Save(string path, string text, TextDocumentFormat format)
-        => File.WriteAllBytes(path, Encode(text, format));
+    {
+        byte[] payload = Encode(text, format);
+
+        if (!File.Exists(path))
+        {
+            File.WriteAllBytes(path, payload);
+            return;
+        }
+
+        string temporary = path + ".mdpad-tmp";
+
+        try
+        {
+            File.WriteAllBytes(temporary, payload);
+
+            try
+            {
+                // Replace keeps the destination's attributes and ACLs.
+                File.Replace(temporary, path, destinationBackupFileName: null);
+            }
+            catch (Exception e) when (e is IOException or PlatformNotSupportedException or UnauthorizedAccessException)
+            {
+                // Some file systems (network shares, FAT) do not support Replace.
+                File.Move(temporary, path, overwrite: true);
+            }
+        }
+        catch
+        {
+            TryDelete(temporary);
+            throw;
+        }
+    }
+
+    /// <summary>Metadata used to notice that another program changed the file.</summary>
+    public static FileStamp? TryReadStamp(string path)
+    {
+        try
+        {
+            var info = new FileInfo(path);
+            return info.Exists ? new FileStamp(info.LastWriteTimeUtc, info.Length) : null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return null;
+        }
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // Leaving a stray temporary file behind is the lesser problem.
+        }
+    }
 
     /// <summary>
     /// Produces the exact bytes that <see cref="Save"/> would write. Separated out

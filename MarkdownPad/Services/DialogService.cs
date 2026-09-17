@@ -80,11 +80,11 @@ public sealed class DialogService : IDialogService
         return window.InsertRequested;
     }
 
-    public void ShowFindReplace(TextBoxEditor editor, bool showReplace, string? seedText)
+    public void ShowFindReplace(TextBoxEditor editor, SearchSession session, bool showReplace, string? seedText)
     {
         // One instance, reused: the old code called Show() every time, so each
         // Ctrl+F left another dialog on screen.
-        _findReplaceDialog ??= new FindReplaceDialog(editor, showReplace) { Owner = _owner };
+        _findReplaceDialog ??= new FindReplaceDialog(editor, session, showReplace) { Owner = _owner };
 
         _findReplaceDialog.ShowReplace(showReplace);
         if (!string.IsNullOrEmpty(seedText)) _findReplaceDialog.SetSearchText(seedText);
@@ -103,6 +103,21 @@ public sealed class DialogService : IDialogService
         // The dialog cancels its own Closing to stay reusable, so it needs an
         // explicit shutdown when the application is going away.
         dialog.CloseForReal();
+    }
+
+    public bool AskToReload(string fileName, bool hasUnsavedChanges)
+    {
+        string warning = hasUnsavedChanges
+            ? "\n\n再読み込みすると、保存していない変更は失われます。"
+            : string.Empty;
+
+        return MessageBox.Show(
+            _owner,
+            $"'{fileName}' が他のプログラムによって変更されました。\n再読み込みしますか?{warning}",
+            "MarkdownPad",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question,
+            hasUnsavedChanges ? MessageBoxResult.No : MessageBoxResult.Yes) == MessageBoxResult.Yes;
     }
 
     public bool AskToRecover(RecoverySnapshot snapshot)

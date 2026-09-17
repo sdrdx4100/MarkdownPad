@@ -169,7 +169,7 @@ public static class MarkdownFormatter
     }
 
     /// <summary>Expands the selection to cover every line it touches.</summary>
-    internal static (int Start, int End) GetLineSpan(string text, int selectionStart, int selectionLength)
+    public static (int Start, int End) GetLineSpan(string text, int selectionStart, int selectionLength)
     {
         selectionStart = Clamp(selectionStart, 0, text.Length);
         selectionLength = Clamp(selectionLength, 0, text.Length - selectionStart);

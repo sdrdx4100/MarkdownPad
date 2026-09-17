@@ -38,6 +38,8 @@
         <KeyBinding Key="P" Modifiers="Control" Command="{Binding PrintCommand}" />
         <KeyBinding Key="F" Modifiers="Control" Command="{Binding FindCommand}" />
         <KeyBinding Key="H" Modifiers="Control" Command="{Binding ReplaceCommand}" />
+        <KeyBinding Key="F3" Command="{Binding FindNextCommand}" />
+        <KeyBinding Key="F3" Modifiers="Shift" Command="{Binding FindPreviousCommand}" />
         <KeyBinding Key="B" Modifiers="Control" Command="{Binding BoldCommand}" />
         <KeyBinding Key="I" Modifiers="Control" Command="{Binding ItalicCommand}" />
         <KeyBinding Key="K" Modifiers="Control" Command="{Binding InsertLinkCommand}" />
@@ -84,6 +86,13 @@
                 <Separator />
                 <MenuItem Header="検索(_F)..." Command="{Binding FindCommand}" InputGestureText="Ctrl+F" />
                 <MenuItem Header="置換(_H)..." Command="{Binding ReplaceCommand}" InputGestureText="Ctrl+H" />
+                <MenuItem Header="次を検索(_N)" Command="{Binding FindNextCommand}" InputGestureText="F3" />
+                <MenuItem Header="前を検索(_V)" Command="{Binding FindPreviousCommand}" InputGestureText="Shift+F3" />
+                <Separator />
+                <MenuItem Header="行を複製(_D)" Command="{Binding DuplicateLineCommand}" InputGestureText="Ctrl+D" />
+                <MenuItem Header="行を削除(_L)" Command="{Binding DeleteLineCommand}" InputGestureText="Ctrl+Shift+K" />
+                <MenuItem Header="行を上へ移動" Command="{Binding MoveLineUpCommand}" InputGestureText="Alt+↑" />
+                <MenuItem Header="行を下へ移動" Command="{Binding MoveLineDownCommand}" InputGestureText="Alt+↓" />
             </MenuItem>
 
             <MenuItem Header="表示(_V)">
@@ -107,6 +116,9 @@
 
             <MenuItem Header="挿入(_I)">
                 <MenuItem Header="画像を挿入(_I)..." Command="{Binding InsertImageCommand}" />
+                <MenuItem Header="取り込んだ画像を文書フォルダーにコピー(_C)" IsCheckable="True"
+                          IsChecked="{Binding CopyImportedImages}"
+                          ToolTip="オフにすると、ドラッグ＆ドロップした画像は元の場所を参照します。" />
                 <MenuItem Header="リンクを挿入(_L)..." Command="{Binding InsertLinkCommand}" InputGestureText="Ctrl+K" />
                 <MenuItem Header="テーブル(_T)" Command="{Binding InsertTableCommand}" />
                 <MenuItem Header="水平線(_R)" Command="{Binding InsertHorizontalRuleCommand}" />
@@ -271,6 +283,8 @@
                                  AutomationProperties.Name="マークダウンエディター"
                                  Text="{Binding MarkdownText, UpdateSourceTrigger=PropertyChanged}"
                                  SelectionChanged="EditorTextBox_SelectionChanged"
+                                 PreviewKeyDown="EditorTextBox_PreviewKeyDown"
+                                 PreviewMouseWheel="EditorTextBox_PreviewMouseWheel"
                                  PreviewDragOver="EditorTextBox_PreviewDragOver"
                                  Drop="EditorTextBox_Drop" />
                     </Grid>
@@ -313,6 +327,9 @@
                     <Run Text="行: " /><Run Text="{Binding CurrentLine, Mode=OneWay}" />
                     <Run Text=" 列: " /><Run Text="{Binding CurrentColumn, Mode=OneWay}" />
                 </TextBlock>
+            </StatusBarItem>
+            <StatusBarItem Visibility="{Binding HasSelection, Converter={StaticResource BoolToVisibilityConverter}}">
+                <TextBlock Text="{Binding SelectionText}" />
             </StatusBarItem>
             <Separator />
             <StatusBarItem>

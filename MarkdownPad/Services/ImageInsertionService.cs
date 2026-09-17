@@ -36,6 +36,27 @@ public sealed class ImageInsertionService
         return new SavedImage(fullPath, BuildMarkdownPath(fullPath, currentFilePath), fileName);
     }
 
+    /// <summary>
+    /// Copies an external image into the document's <c>images</c> folder,
+    /// keeping its name unless that would overwrite something.
+    /// </summary>
+    public string CopyIntoLibrary(string sourcePath, string? currentFilePath)
+    {
+        string targetDirectory = GetImageDirectory(currentFilePath);
+        Directory.CreateDirectory(targetDirectory);
+
+        string stem = Path.GetFileNameWithoutExtension(sourcePath);
+        string extension = Path.GetExtension(sourcePath);
+
+        string fileName = ImageFiles.CreateUniqueFileName(
+            stem, extension, name => File.Exists(Path.Combine(targetDirectory, name)));
+
+        string fullPath = Path.Combine(targetDirectory, fileName);
+        File.Copy(sourcePath, fullPath);
+
+        return fullPath;
+    }
+
     /// <summary>Markdown reference for an image that already exists on disk.</summary>
     public string BuildMarkdownPath(string imagePath, string? currentFilePath)
     {
